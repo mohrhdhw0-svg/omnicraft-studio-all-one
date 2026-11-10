@@ -1,5 +1,5 @@
-const TEXT_MODEL="gemini-3.8-flash";
-const IMAGE_MODEL="gemini-3.1-flash-image";
+const TEXT_MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite"];
+const IMAGE_MODELS=["gemini-3.1-flash-image","gemini-3.1-flash-lite-image"];
 const MAX_FILE_BYTES=2500000;
 const counts=new Map();
 const tasks={
@@ -34,10 +34,15 @@ if(["captions","transcribe","summarize","describe","poster"].includes(action)&&!
 if(action==="image"&&!prompt.trim())return reply(res,400,{error:"Describe the image you want to create or edit."});
 const instruction=[tasks[action]||"",prompt.trim(),file&&file.name?"Uploaded file: "+String(file.name).slice(0,120):""].filter(Boolean).join("\n\n");
 const parts=[{text:instruction||"Help me with this creative project."}];if(file)parts.push({inlineData:{mimeType:file.mimeType,data:file.data}});
-const model=imageTask?IMAGE_MODEL:TEXT_MODEL;
+const models=imageTask?IMAGE_MODELS:TEXT_MODELS;
 const generationConfig=imageTask?{responseModalities:["TEXT","IMAGE"]}:{temperature:0.4,maxOutputTokens:4096};
-const upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig}),signal:AbortSignal.timeout(110000)});
-const data=await upstream.json().catch(()=>({}));
+let upstream,data,model;
+for(const candidate of models){
+ model=candidate;
+ upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig}),signal:AbortSignal.timeout(110000)});
+ data=await upstream.json().catch(()=>({}));
+ if(upstream.ok||!(upstream.status===429||upstream.status>=500))break;
+}
 if(!upstream.ok){const msg=data&&data.error&&data.error.message?data.error.message:"Gemini request failed.";return reply(res,upstream.status===429?429:upstream.status>=500?502:400,{error:msg})}
 const output=data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts||[];
 const text=output.filter(x=>x.text).map(x=>x.text).join("\n").trim();
