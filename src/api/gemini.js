@@ -1,5 +1,5 @@
-const TEXT_MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite"];
-const IMAGE_MODELS=["gemini-3.1-flash-image","gemini-3.1-flash-lite-image"];
+const TEXT_MODELS=["gemini-3.5-flash-lite","gemini-3.6-flash","gemini-3.8-flash"];
+const IMAGE_MODELS=["gemini-3.1-flash-lite-image","gemini-3.1-flash-image"];
 const MAX_FILE_BYTES=2500000;
 const counts=new Map();
 const tasks={
@@ -39,7 +39,7 @@ const generationConfig=imageTask?{responseModalities:["TEXT","IMAGE"]}:{temperat
 let upstream,data,model;
 for(const candidate of models){
  model=candidate;
- upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig}),signal:AbortSignal.timeout(110000)});
+ upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig}),signal:AbortSignal.timeout(25000)});
  data=await upstream.json().catch(()=>({}));
  if(upstream.ok||!(upstream.status===429||upstream.status>=500))break;
 }
