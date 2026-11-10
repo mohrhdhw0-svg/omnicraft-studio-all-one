@@ -43,7 +43,7 @@ for(const candidate of models){
  data=await upstream.json().catch(()=>({}));
  if(upstream.ok||!(upstream.status===429||upstream.status>=500))break;
 }
-if(!upstream.ok){const msg=data&&data.error&&data.error.message?data.error.message:"Gemini request failed.";return reply(res,upstream.status===429?429:upstream.status>=500?502:400,{error:msg})}
+if(!upstream.ok){if(imageTask&&(upstream.status===429||upstream.status===403))return reply(res,429,{error:"Gemini image generation is not included in the current free tier or its image quota is exhausted. Enable paid Gemini API access to use this tool."});const msg=data&&data.error&&data.error.message?data.error.message:"Gemini request failed.";return reply(res,upstream.status===429?429:upstream.status>=500?502:400,{error:msg})}
 const output=data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts||[];
 const text=output.filter(x=>x.text).map(x=>x.text).join("\n").trim();
 const images=output.filter(x=>x.inlineData&&x.inlineData.data).map(x=>({mimeType:x.inlineData.mimeType||"image/png",data:x.inlineData.data}));
